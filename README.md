@@ -1,3 +1,8 @@
+<p align="center">
+  <img src="https://upload.wikimedia.org/wikipedia/commons/8/88/Ovpntech_logo-s_REVISED.png">
+</p>
+
+Watch tutorial on YouTube: [▶ Setup your own VPN server](https://youtu.be/avYcoMKaXRc).
 
 This script will let you setup your own VPN server in no more than a minute, even if you haven't used OpenVPN before. It has been designed to be as unobtrusive and universal as possible.
 
