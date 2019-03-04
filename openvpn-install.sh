@@ -42,13 +42,13 @@ newclient () {
 	cat /etc/openvpn/easy-rsa/pki/ca.crt >> ~/$1.ovpn
 	echo "</ca>" >> ~/$1.ovpn
 	echo "<cert>" >> ~/$1.ovpn
-	cat /etc/openvpn/easy-rsa/pki/issued/$1.crt >> ~/$1.ovpn
+	sed -ne '/BEGIN CERTIFICATE/,$ p' /etc/openvpn/easy-rsa/pki/issued/$1.crt >> ~/$1.ovpn
 	echo "</cert>" >> ~/$1.ovpn
 	echo "<key>" >> ~/$1.ovpn
 	cat /etc/openvpn/easy-rsa/pki/private/$1.key >> ~/$1.ovpn
 	echo "</key>" >> ~/$1.ovpn
 	echo "<tls-auth>" >> ~/$1.ovpn
-	cat /etc/openvpn/ta.key >> ~/$1.ovpn
+	sed -ne '/BEGIN OpenVPN Static key/,$ p' /etc/openvpn/ta.key >> ~/$1.ovpn
 	echo "</tls-auth>" >> ~/$1.ovpn
 }
 
@@ -102,9 +102,6 @@ if [[ -e /etc/openvpn/server.conf ]]; then
 				cd /etc/openvpn/easy-rsa/
 				./easyrsa --batch revoke $CLIENT
 				EASYRSA_CRL_DAYS=3650 ./easyrsa gen-crl
-				rm -f pki/reqs/$CLIENT.req
-				rm -f pki/private/$CLIENT.key
-				rm -f pki/issued/$CLIENT.crt
 				rm -f /etc/openvpn/crl.pem
 				cp /etc/openvpn/easy-rsa/pki/crl.pem /etc/openvpn/crl.pem
 				# CRL is read with each client connection, when OpenVPN is dropped to nobody
@@ -179,7 +176,7 @@ else
 	# Autodetect IP address and pre-fill for the user
 	IP=$(ip addr | grep 'inet' | grep -v inet6 | grep -vE '127\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | grep -oE '[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}' | head -1)
 	read -p "IP address: " -e -i $IP IP
-	# If $IP is a private IP address, the server must be behind NAT
+	# If $IP is a private IP address, the server must be behind NAT
 	if echo "$IP" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
 		echo
 		echo "This server is behind NAT. What is the public IPv4 address or hostname?"
@@ -225,11 +222,11 @@ else
 		yum install openvpn iptables openssl ca-certificates -y
 	fi
 	# Get easy-rsa
-	EASYRSAURL='https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.5/EasyRSA-nix-3.0.5.tgz'
+	EASYRSAURL='https://github.com/OpenVPN/easy-rsa/releases/download/v3.0.6/EasyRSA-unix-v3.0.6.tgz'
 	wget -O ~/easyrsa.tgz "$EASYRSAURL" 2>/dev/null || curl -Lo ~/easyrsa.tgz "$EASYRSAURL"
 	tar xzf ~/easyrsa.tgz -C ~/
-	mv ~/EasyRSA-3.0.5/ /etc/openvpn/
-	mv /etc/openvpn/EasyRSA-3.0.5/ /etc/openvpn/easy-rsa/
+	mv ~/EasyRSA-v3.0.6/ /etc/openvpn/
+	mv /etc/openvpn/EasyRSA-v3.0.6/ /etc/openvpn/easy-rsa/
 	chown -R root:root /etc/openvpn/easy-rsa/
 	rm -f ~/easyrsa.tgz
 	cd /etc/openvpn/easy-rsa/
@@ -400,7 +397,7 @@ verb 3" > /etc/openvpn/client-common.txt
 	echo
 	echo "Finished!"
 	echo
-	cp ~/"$CLIENT.ovpn" /home/"$CLIENT.ovpn"
+	mv ~/"$CLIENT.ovpn" /home/"$CLIENT.ovpn"
 	echo "Your client configuration is available at:" /home/"$CLIENT.ovpn"
 	echo "If you want to add more clients, you simply need to run this script again!"
 fi
