@@ -211,7 +211,7 @@ else
 	echo "Please, use one word only, no special characters."
 	read -p "Client name: " -e -i client CLIENT
 	echo
-	echo "Okay, that was all I needed. We are ready to set up your OpenVPN server now."
+	echo "Okay, that was all I needed. We are ready to set up your OpenVPN server now. THIS WILL TAKE LONG TIME"
 	read -n1 -r -p "Press any key to continue..."
 	if [[ "$OS" = 'debian' ]]; then
 		apt-get update
@@ -242,15 +242,8 @@ else
 	chown nobody:$GROUPNAME /etc/openvpn/crl.pem
 	# Generate key for tls-auth
 	openvpn --genkey --secret /etc/openvpn/ta.key
-	# Create the DH parameters file using the predefined ffdhe2048 group
-	echo '-----BEGIN DH PARAMETERS-----
-MIIBCAKCAQEA//////////+t+FRYortKmq/cViAnPTzx2LnFg84tNpWp4TZBFGQz
-+8yTnc4kmz75fS/jY2MMddj2gbICrsRhetPfHtXV/WVhJDP1H18GbtCFY2VVPe0a
-87VXE15/V8k1mE8McODmi3fipona8+/och3xWKE2rec1MKzKT0g6eXq8CrGCsyT7
-YdEIqUuyyOP7uWrat2DX9GgdT0Kj3jlN9K5W7edjcrsZCwenyO4KbXCeAvzhzffi
-7MA0BM0oNC9hkXL+nOmFg/+OTxIy7vKBg8P+OxtMb61zO7X8vC7CIAXFjvGDfRaD
-ssbzSibBsu/6iGtCOGEoXJf//////////wIBAg==
------END DH PARAMETERS-----' > /etc/openvpn/dh.pem
+	# Generating the DH parameters
+	openssl dhparam -out dh2048.pem 2048
 	# Generate server.conf
 	echo "port $PORT
 proto $PROTOCOL
@@ -260,7 +253,7 @@ rcvbuf 0
 ca ca.crt
 cert server.crt
 key server.key
-dh dh.pem
+dh dh2048.pem
 auth SHA512
 tls-auth ta.key 0
 topology subnet
