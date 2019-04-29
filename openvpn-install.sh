@@ -243,7 +243,7 @@ else
 	# Generate key for tls-auth
 	openvpn --genkey --secret /etc/openvpn/ta.key
 	# Generating the DH parameters
-	openssl dhparam -out dh2048.pem 2048
+	openssl dhparam -out /etc/openvpn/dh2048.pem 2048
 	# Generate server.conf
 	echo "port $PORT
 proto $PROTOCOL
