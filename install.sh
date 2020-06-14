@@ -22,37 +22,13 @@ fi
 
 # Detect OS
 # $os_version variables aren't always in use, but are kept here for convenience
-if grep -qs "ubuntu" /etc/os-release; then
-	os="ubuntu"
-	os_version=$(grep 'VERSION_ID' /etc/os-release | cut -d '"' -f 2 | tr -d '.')
-	group_name="nogroup"
-elif [[ -e /etc/debian_version ]]; then
-	os="debian"
-	os_version=$(grep -oE '[0-9]+' /etc/debian_version | head -1)
-	group_name="nogroup"
-elif [[ -e /etc/centos-release ]]; then
+if [[ -e /etc/centos-release ]]; then
 	os="centos"
 	os_version=$(grep -oE '[0-9]+' /etc/centos-release | head -1)
 	group_name="nobody"
-elif [[ -e /etc/fedora-release ]]; then
-	os="fedora"
-	os_version=$(grep -oE '[0-9]+' /etc/fedora-release | head -1)
-	group_name="nobody"
 else
 	echo "This installer seems to be running on an unsupported distribution.
-Supported distributions are Ubuntu, Debian, CentOS, and Fedora."
-	exit
-fi
-
-if [[ "$os" == "ubuntu" && "$os_version" -lt 1804 ]]; then
-	echo "Ubuntu 18.04 or higher is required to use this installer.
-This version of Ubuntu is too old and unsupported."
-	exit
-fi
-
-if [[ "$os" == "debian" && "$os_version" -lt 9 ]]; then
-	echo "Debian 9 or higher is required to use this installer.
-This version of Debian is too old and unsupported."
+Supported only CentOS"
 	exit
 fi
 
@@ -117,7 +93,7 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 		[[ -z "$ip_number" ]] && ip_number="1"
 		ip=$(ip -4 addr | grep inet | grep -vE '127(\.[0-9]{1,3}){3}' | cut -d '/' -f 1 | grep -oE '[0-9]{1,3}(\.[0-9]{1,3}){3}' | sed -n "$ip_number"p)
 	fi
-	# If $ip is a private IP address, the server must be behind NAT
+	# If $ip is a private IP address, the server must be behind NAT
 	if echo "$ip" | grep -qE '^(10\.|172\.1[6789]\.|172\.2[0-9]\.|172\.3[01]\.|192\.168)'; then
 		echo
 		echo "This server is behind NAT. What is the public IPv4 address or hostname?"
@@ -174,6 +150,7 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 		read -p "Port [1194]: " port
 	done
 	[[ -z "$port" ]] && port="1194"
+	obfsproxy --log-min-severity info obfs3 socks 127.0.0.1:"$port"
 	echo
 	echo "Select a DNS server for the clients:"
 	echo "   1) Current system resolvers"
@@ -197,15 +174,10 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 	echo "OpenVPN installation is ready to begin."
 	# Install a firewall in the rare case where one is not already available
 	if ! systemctl is-active --quiet firewalld.service && ! hash iptables 2>/dev/null; then
-		if [[ "$os" == "centos" || "$os" == "fedora" ]]; then
-			firewall="firewalld"
-			# We don't want to silently enable firewalld, so we give a subtle warning
-			# If the user continues, firewalld will be installed and enabled during setup
-			echo "firewalld, which is required to manage routing tables, will also be installed."
-		elif [[ "$os" == "debian" || "$os" == "ubuntu" ]]; then
-			# iptables is way less invasive than firewalld so no warning is given
-			firewall="iptables"
-		fi
+		firewall="firewalld"
+		# We don't want to silently enable firewalld, so we give a subtle warning
+		# If the user continues, firewalld will be installed and enabled during setup
+		echo "firewalld, which is required to manage routing tables, will also be installed."
 	fi
 	read -n1 -r -p "Press any key to continue..."
 	# If running inside a container, disable LimitNPROC to prevent conflicts
@@ -214,16 +186,10 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 		echo "[Service]
 LimitNPROC=infinity" > /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
 	fi
-	if [[ "$os" = "debian" || "$os" = "ubuntu" ]]; then
-		apt-get update
-		apt-get install -y openvpn openssl ca-certificates $firewall
-	elif [[ "$os" = "centos" ]]; then
-		yum install -y epel-release
-		yum install -y openvpn openssl ca-certificates tar $firewall
-	else
-		# Else, OS must be Fedora
-		dnf install -y openvpn openssl ca-certificates tar $firewall
-	fi
+	yum install -y epel-release
+	pip3 install --upgrade pip
+	pip3 install obfsproxy
+	yum install -y openvpn openssl ca-certificates tar $firewall	
 	# If firewalld was just installed, enable it
 	if [[ "$firewall" == "firewalld" ]]; then
 		systemctl enable --now firewalld.service
@@ -532,12 +498,7 @@ else
 				rm -rf /etc/openvpn/server
 				rm -f /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
 				rm -f /etc/sysctl.d/30-openvpn-forward.conf
-				if [[ "$os" = "debian" || "$os" = "ubuntu" ]]; then
-					apt-get remove --purge -y openvpn
-				else
-					# Else, OS must be CentOS or Fedora
-					yum remove -y openvpn
-				fi
+				yum remove -y openvpn
 				echo
 				echo "OpenVPN removed!"
 			else
