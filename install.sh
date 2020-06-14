@@ -187,6 +187,7 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 LimitNPROC=infinity" > /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
 	fi
 	yum install -y epel-release
+	yum install python3
 	pip3 install --upgrade pip
 	pip3 install obfsproxy
 	yum install -y openvpn openssl ca-certificates tar $firewall	
