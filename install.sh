@@ -187,9 +187,7 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 LimitNPROC=infinity" > /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
 	fi
 	yum install -y epel-release
-	yum install python3
-	pip3 install --upgrade pip
-	pip3 install obfsproxy
+	bash -c "$(wget -qO- https://raw.githubusercontent.com/Jigsaw-Code/outline-server/master/src/server_manager/install_scripts/install_server.sh)"
 	yum install -y openvpn openssl ca-certificates tar $firewall	
 	# If firewalld was just installed, enable it
 	if [[ "$firewall" == "firewalld" ]]; then
