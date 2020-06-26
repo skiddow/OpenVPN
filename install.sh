@@ -150,7 +150,6 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 		read -p "Port [1194]: " port
 	done
 	[[ -z "$port" ]] && port="1194"
-	obfsproxy --log-min-severity info obfs3 socks 127.0.0.1:"$port"
 	echo
 	echo "Select a DNS server for the clients:"
 	echo "   1) Current system resolvers"
@@ -186,8 +185,8 @@ if [[ ! -e /etc/openvpn/server/server.conf ]]; then
 		echo "[Service]
 LimitNPROC=infinity" > /etc/systemd/system/openvpn-server@server.service.d/disable-limitnproc.conf
 	fi
+	wget https://raw.githubusercontent.com/Jigsaw-Code/outline-server/master/src/server_manager/install_scripts/install_server.sh && bash install_server.sh
 	yum install -y epel-release
-	bash -c "$(wget -qO- https://raw.githubusercontent.com/Jigsaw-Code/outline-server/master/src/server_manager/install_scripts/install_server.sh)"
 	yum install -y openvpn openssl ca-certificates tar $firewall	
 	# If firewalld was just installed, enable it
 	if [[ "$firewall" == "firewalld" ]]; then
